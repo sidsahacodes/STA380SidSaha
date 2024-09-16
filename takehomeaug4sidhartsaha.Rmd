@@ -1,0 +1,996 @@
+---
+title: "TakeHomeAug4"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+date: "2024-07-23"
+---
+
+```         
+```
+
+# Take-home #1 (Chapter 2 #10)
+
+## Part A
+
+```{r}
+#Access Boston Data
+library(ISLR2)
+my_data = Boston
+#Dimensions of table
+rows_columns = dim(my_data)
+#Print dimensions
+nrow(Boston)
+ncol(Boston)
+```
+
+Answer: 506 rows and 13 variables
+
+## Part B
+
+```{r}
+
+#Convert the 'chas' and 'rad' column to numeric type
+my_data$chas <- as.numeric(my_data$chas)
+my_data$rad <- as.numeric(my_data$rad)
+# Create a scatterplot matrix of the variables in the my_data dataframe
+pairs(my_data)
+
+```
+
+Answer: The plot itself doesn't really help us reach any conclusions. What it does tell us is that some variables may be correlated. For example, we can see that crim and dis may seems to have a relationship.
+
+## Part C
+
+```{r}
+library(dplyr)
+#Initialize empty lists to store results
+i <- character()
+j <- character()
+cor <- numeric()
+p <- numeric()
+
+#Loop through each variable in the my_data
+for (var in names(my_data)) {
+  if (var != "crim") {
+    # Calculate correlation and p-value
+    test <- cor.test(my_data$crim, my_data[[var]])
+    # Store results
+    i <- c(i, "crim")
+    j <- c(j, var)
+    cor <- c(cor, test$estimate)
+    p <- c(p, test$p.value)
+  }
+}
+
+#Combine results into a my_data
+results <- data.frame(i, j, cor, p)
+
+#Display the results
+print(results)
+```
+
+Answer: To see the relationships between the variables and crime rate, I made a correlation matrix with p-values. The correlation matrix shows that there is indeed a relationship between the predictors and crime rate. For example, rad and crim has a correlation coefficient of 0.625 and a really low p-value indicating a strong relationship. Some variables demonstrate a negative correlation too.
+
+## Part D
+
+```{r}
+#Scatter Plots for tax  and ptration against crime
+plot(my_data$tax,my_data$crim)
+plot(my_data$ptratio,my_data$crim)
+#Ranges Displayed for 
+range(my_data$tax)
+range(my_data$ptratio)
+```
+
+-   The range for tax is 187 - 711 and The range for ptratio is 12.6 - 22.0
+
+-   Particularly the census tracts where tax is 666 and ptratio is 20.2, we see a spike in the range of crime rate. However this does not mean that the areas with the highest tax rate have the highest crime rates. Perhaps because some properties at nicer places have higher tax rates for example comparing NY city to the Hamptons.
+
+```{r}
+#Plot Histogram for Crime Rate Across Different Suburbs
+library(ggplot2)
+qplot(my_data$crim, binwidth=5, xlab= "Crime rate", ylab= "Number of Suburbs")
+```
+
+-   From the above figure, we can see that while some neighborhoods have low crime rates, others have extremely high rates. Additionally, given that the median crime rate is 0.26% and the maximum is 89%, it is evident that certain neighborhoods experience alarmingly high crime rates.
+
+## Part E
+
+```{r}
+# Census tracts in this data set bound the Charles river
+sum(my_data$chas)
+
+```
+
+Answer: Number of Census Tracts that bound Charles River is 35
+
+## Part F
+
+```{r}
+#Median pupil-teacher ratio
+median(my_data$ptratio)
+```
+
+Answer: Median PT ratio is 19.05
+
+## Part G
+
+```{r}
+
+#Find the census tract with lowest median value of owner occupied homes
+ordered_by_medv <- my_data[order(my_data$medv),]
+ordered_by_medv [1, ]
+
+```
+
+```{r}
+#Find Summary of all columns of data set so we can compare
+summary(ordered_by_medv)
+```
+
+-   Crime is very high(38.35) falling even higher than the third quartile(3.67) when compared to overall range.
+
+-   No residential land zones for lots over 25,000 sq.ft.
+
+-   Proprotion of non-retail business acres per town is very high falling at just on the third quartile when compared to overall range.
+
+-   Suburb 399 does not bound the Charles River.
+
+-   Nox is very high (0.693) falling even higher than third third quartile (0.6240) when compared to overall range.
+
+-   Rooms per dwelling metric falls under the lower category (5.443), lower than the 1st quartile ( 5.886).
+
+-   One of the highest undefined proportion of owner occupied unit sbuilt prior to 1940 (100).
+
+-   Weighted mean of distances to five Boston employment centres falls at one of the lowest (1.486), lower than the 1st quartile (17.02).
+
+-   Index of accessibility to radial highways is the highest when compared to the range of the entire data set.
+
+-   Full-value property tax rate per \$10,000 is quit high sitting right o the third quartile (666)
+
+-   Pupil teacher ration by town is quite high of 20.2 falling on the third qaurtile.
+
+-   Lower status of population is quite high (30.59), falling above the third quartiel (16.95).
+
+-   Median value of owner occupied homes in \$1000s is the lowest in the range (5.00).
+
+## Part H
+
+```{r}
+#Do Summation given conditions for rooms per dwelling. 
+sum(my_data$rm > 7) #64
+sum(my_data$rm > 8) #13
+```
+
+Answer:
+
+-   64 suburbs with rooms per dwelling \> 7.
+
+-   13 suburbs with roombs per dwelling \> 8.
+
+```{r}
+#Find summary for suburbs where rooms per dwelling is greater than 8
+summary(filter(my_data, my_data$rm > 8))
+```
+
+-   Mean crime rates when compared to the entire data set is much lower when number of dwellings is more than 8.
+
+-   There is a low pupil teacher ratio.
+
+-   These properties seem to farther away from the highways perhaps because they are not as near to the the centre of the city. Additionally, there are not a lot of non-retail businesses showing that these areas are residential.
+
+-   They are older houses.
+
+# Take-home #2 (Chapter 2 #10)
+
+```{r}
+#Access Boston Data
+library(ISLR2)
+p2_data = Boston
+```
+
+## Part A
+
+```{r}
+#List of all predictors in the dataset except for crim
+predictors <- names(Boston)[names(Boston) != "crim"]
+
+#Initialize an empty list to store the model summaries
+model_summaries <- list()
+
+#Fit simple linear regression models for each predictor
+for (predictor in predictors) {
+  formula <- as.formula(paste("crim ~", predictor))
+  model <- lm(formula, data = Boston)
+  model_summaries[[predictor]] <- summary(model)
+}
+
+```
+
+```{r}
+#Extract significant and non-significant predictors
+significant_predictors <- list()
+non_significant_predictors <- list()
+
+for (predictor in predictors) {
+  coef_summary <- coef(model_summaries[[predictor]])
+  p_value <- coef_summary[2, 4]  # p-value of the predictor
+  
+  if (p_value < 0.05) {
+    significant_predictors <- c(significant_predictors, predictor)
+  } else {
+    non_significant_predictors <- c(non_significant_predictors, predictor)
+  }
+}
+
+#Display significant and non-significant predictors
+significant_predictors
+non_significant_predictors
+```
+
+```{r}
+#Set up plot area
+par(mfrow = c(2, 4))
+
+#Plot for each significant predictor
+for (predictor in significant_predictors) {
+  formula <- as.formula(paste("crim ~", predictor))
+  model <- lm(formula, data = Boston)
+  
+  plot(Boston[[predictor]], Boston$crim, main = paste("crim vs", predictor),
+       xlab = predictor, ylab = "crim", pch = 20, col = "blue")
+  abline(model, col = "red", lwd = 2)
+}
+```
+
+#Comments: According to the simple regression model the only predictor that does not have a statistcally significant relationship with crime is chas ( if tract bounds river or not). All other variables seem to have a relationship. The linear lines are present however, it is clear that it is not a very accurate representation of what is going on because of the residuals.
+
+## Part B
+
+```{r}
+#Multiple Regression Model with a target variable of Crime
+lm.all = lm(crim ~ ., data=p2_data)
+summary(lm.all)
+```
+
+#Comment: Accordng to the table with he p-values listed for each predictor zn, dis, rad, and medv have a p-value lower than 0.05, meaning they are the only variables that demonstrate a statistically significant relationship within the multiple regression model.
+
+## Part C
+
+```{r}
+#List of all predictors in the dataset except for crim
+predictors <- names(Boston)[names(Boston) != "crim"]
+
+#Initialize vectors to store coefficients
+univariate_coeffs <- c()
+
+#Fit simple linear regression models for each predictor and extract coefficients
+for (predictor in predictors) {
+  formula <- as.formula(paste("crim ~", predictor))
+  model <- lm(formula, data = Boston)
+  univariate_coeffs <- c(univariate_coeffs, coef(model)[2])
+}
+
+#Display univariate coefficients
+univariate_coeffs
+
+```
+
+```{r}
+#Fit a multiple regression model including all predictors
+multi_model <- lm(crim ~ ., data = Boston)
+
+#Extract coefficients for all predictors (excluding intercept)
+multi_coeffs <- coef(multi_model)[-1]
+
+#Display multiple regression coefficients
+multi_coeffs
+
+```
+
+```{r}
+#Plot univariate vs multiple regression coefficients
+plot(univariate_coeffs, multi_coeffs, 
+     xlab = "Univariate Coefficients", 
+     ylab = "Multiple Regression Coefficients", 
+     main = "Comparison of Univariate and Multiple Regression Coefficients")
+
+#Add 45-degree reference line
+abline(0, 1, col = "red", lwd = 2)
+
+```
+
+Comment: The plot shows that most predictors have similar coefficients in univariate and multiple regression models. However, "nox" (nitrogen oxides concentration (parts per 10 million)) is the only variable that exhibits a large discrepancy. This discrepancy likely results from multicollinearity with other predictors, as indicated by its extreme difference in coefficients.
+
+## Part D
+
+```{r}
+# List of all predictors in the dataset except for crim
+predictors <- names(Boston)[names(Boston) != "crim"]
+
+# Initialize a list to store significant cubic terms
+significant_cubic <- list()
+
+# Fit polynomial regression models for each predictor and check for cubic terms
+for (predictor in predictors) {
+  formula <- as.formula(paste("crim ~", predictor, "+ I(", predictor, "^2) + I(", predictor, "^3)"))
+  poly_model <- lm(formula, data = Boston)
+  coef_summary <- summary(poly_model)$coefficients
+  
+  # Check if the model includes the cubic term
+  if (nrow(coef_summary) >= 4) {
+    # Extract the p-value for the cubic term (4th row)
+    p_value_cubic <- coef_summary[4, 4]
+    
+    if (p_value_cubic < 0.05) {
+      significant_cubic <- c(significant_cubic, predictor)
+    }
+  }
+}
+
+# Display predictors with significant cubic terms
+significant_cubic
+
+
+```
+
+```         
+```
+
+\#"indus", "nox", "age", "dis", "ptratio", "medv" are all the variables that show a non-linear relationship with crime given the cubic polynomial model.
+
+# Take-home #3 (Chapter 6 #11)
+
+```{r}
+#Access Boston Data
+library(ISLR2)
+p3_data = Boston
+summary(p3_data)
+```
+
+## Part A
+
+**Linear Model Regularization Method: Best Subset Selection**
+
+```{r}
+library(leaps)
+set.seed(1)
+train_set <- sample(1:nrow(p3_data), 0.80 * nrow(p3_data))
+test_set <- setdiff(1:nrow(p3_data), train_set)
+crim_test <- p3_data$crim[test_set]
+```
+
+```{r}
+#Perform best subset selection on training set
+subset_fit <- regsubsets(crim ~ ., data = p3_data, subset = train_set, nvmax = 13)
+subset_summary <- summary(subset_fit)
+
+```
+
+```{r}
+
+#Create the test matrix
+test_mat <- model.matrix(crim ~ ., data = p3_data[test_set, ])
+validation_errors <- rep(NA, 13)
+
+#Calculate validation errors for each model
+for (idx in 1:12) {
+    coefficients <- coef(subset_fit, id = idx)
+    predictions <- test_mat[, names(coefficients)] %*% coefficients
+    validation_errors[idx] <- mean((p3_data$crim[test_set] - predictions)^2)
+}
+
+#Identify the best model
+optimal_model <- which.min(validation_errors)
+plot(validation_errors, type = 'b')
+points(optimal_model, validation_errors[optimal_model], col = "red", cex = 2, pch = 20)
+subset_mse <- validation_errors[optimal_model]
+subset_rmse <- sqrt(subset_mse)
+```
+
+```{r}
+#Refit the best subset model on the entire dataset
+full_subset_fit <- regsubsets(crim ~ ., data = p3_data, nvmax = 11)
+full_model_coeffs <- coef(full_subset_fit, optimal_model)
+```
+
+```{r}
+#Display results
+cat("Optimal number of predictors:", optimal_model, "\n")
+cat("Coefficients of the best model:\n")
+print(full_model_coeffs)
+cat("MSE of the best model:", subset_mse, "\n")
+cat("RMSE of the best model:", subset_rmse, "\n")
+
+```
+
+**Linear Model Regularization Method: Ridge Regression**
+
+```{r}
+library(glmnet)
+#Set seed for reproducibility
+set.seed(1)
+
+#Prepare the data
+X <- model.matrix(crim ~ ., p3_data)[, -1]  # Design matrix (features)
+Y <- p3_data$crim  # Response vector (target variable)
+
+# Split the data into training and testing sets
+set.seed(4)
+training_indices <- sample(1:nrow(p3_data), 0.80 * nrow(p3_data))
+testing_indices <- setdiff(1:nrow(p3_data), training_indices)
+
+```
+
+```{r}
+#Fit the Ridge Regression model on the training set
+ridge_model <- glmnet(X[training_indices, ], Y[training_indices], alpha = 0)
+
+```
+
+```{r}
+#Perform cross-validation to find the best lambda
+cv_ridge_model <- cv.glmnet(X[training_indices, ], Y[training_indices], alpha = 0)
+plot(cv_ridge_model)
+
+#Optimal lambda value
+optimal_lambda <- cv_ridge_model$lambda.min
+cat("Best lambda value for Ridge Regression:", optimal_lambda, "\n")
+
+
+```
+
+Note that I chose to do cross-validation to optimize hyper-parameter lamda.
+
+```{r}
+#Predict on the test set using optimal lambda
+ridge_predictions <- predict(ridge_model, s = optimal_lambda, newx = X[testing_indices, ])
+ridge_mse <- mean((ridge_predictions - Y[testing_indices])^2)
+ridge_rmse <- sqrt(ridge_mse)
+
+#Display the Ridge Regression Erro Values
+cat("MSE for Ridge Regression:", ridge_mse, "\n")
+cat("RMSE for Ridge Regression:", ridge_rmse, "\n")
+```
+
+**Linear Model Regularization Method: Lasso Regression**
+
+```{r}
+#Fit the Lasso Regression on training set
+lasso_model <- glmnet(X[training_indices, ], Y[training_indices], alpha = 1)
+```
+
+```{r}
+#Perform cross-validation to find optimal lambda
+cv_lasso_model <- cv.glmnet(X[training_indices, ], Y[training_indices], alpha = 1)
+plot(cv_lasso_model)
+
+#Optimal lambda value
+optimal_lambda <- cv_lasso_model$lambda.min
+cat("Best lambda value for Lasso Regression:", optimal_lambda, "\n")
+
+#Predict on the test set using optimal lambda
+lasso_predictions <- predict(lasso_model, s = optimal_lambda, newx = X[testing_indices, ])
+lasso_mse <- mean((lasso_predictions - Y[testing_indices])^2)
+lasso_rmse <- sqrt(lasso_mse)
+```
+
+```{r}
+#Get coefficients of the best model
+lasso_coefficients <- predict(lasso_model, type = "coefficients", s = optimal_lambda)[1:13,]
+```
+
+```{r}
+#Results
+cat("MSE for Lasso Regression:", lasso_mse, "\n")
+cat("RMSE for Lasso Regression:", lasso_rmse, "\n")
+cat("Number of non-zero coefficients in the best model:", length(lasso_coefficients[lasso_coefficients != 0]), "\n")
+cat("Non-zero coefficients in the best model:\n")
+print(lasso_coefficients[lasso_coefficients != 0])
+```
+
+**Linear Model Regularization Method: Principal Component Regression**
+
+```{r}
+library(pls)
+#Fit the PCR model on the training set
+pcr_model <- pcr(crim ~ ., data = p3_data, subset = train_set, scale = TRUE, validation = "CV")
+#Summary of PCR model
+summary(pcr_model)
+validationplot(pcr_model, val.type = "MSEP", main = "PCR Validation", xlab = "Number of Principal Components")
+```
+
+```{r}
+#Make predictions on the test set using the model with 12 components
+pcr_predictions <- predict(pcr_model, p3_data[test_set,], ncomp = 12)
+pcr_mse <- mean((pcr_predictions - p3_data$crim[test_set])^2)
+pcr_rmse <- sqrt(pcr_mse)
+
+#Display the PCR results
+cat("MSE for PCR:", pcr_mse, "\n")
+cat("RMSE for PCR:", pcr_rmse, "\n")
+```
+
+## Part B
+
+```{r}
+#Combine the errors into a vector
+errors <- c(subset_mse, ridge_mse, lasso_mse, pcr_mse)
+names(errors) <- c("Best subset", "Ridge", "Lasso", "PCR")
+
+#Plot the errors
+barplot(sort(errors, decreasing = TRUE), col = "skyblue", 
+        main = "Comparison of Model Errors", ylab = "Mean Squared Error (MSE)")
+
+text(x = seq_along(errors), y = sort(errors, decreasing = TRUE), 
+     labels = round(sort(errors, decreasing = TRUE), 2), pos = 3, cex = 0.8, col = "blue")
+
+```
+
+Summary of Results Among the 4 models Specified:
+
+```         
+MSE of the best model: 64.2848  RMSE of the best model: 8.01778 
+```
+
+```         
+MSE for Ridge Regression: 51.27786  RMSE for Ridge Regression: 7.160856 
+```
+
+```         
+MSE for Lasso Regression: 50.83944  RMSE for Lasso Regression: 7.130178 
+```
+
+```         
+MSE for PCR: 64.30352  RMSE for PCR: 8.018948 
+```
+
+Among the four models considered, Lasso Regression yielded the lowest RMSE, making it the best-performing model for predicting the per capita crime rate in the Boston dataset. The lasso model demonstrated that it can perform variable selection and regularization. The lower RMSE as compared to the other models shows that it can better manage multicollinearity and prevent overfitting, leading to improved predictive accuracy. Additionaly, this particular model used cross-validation to optimise the hyper-parameter lambda which helped reduce overfitting and improved the robustness of the model. It is to note that Ridge was not very far off and used a similar cross-validation method.
+
+## Part C
+
+The Lasso Regression model selected 11 features and the intercept term, excluding age. This may have reduced the complexity of the model to improve interpretability and predictive accuracy by focusing on the more important variables.
+
+# Take-home #4 (Chapter 8 #8)
+
+```{r}
+# Load necessary libraries
+library(readr)
+library(dplyr)
+library(tree)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(caret)
+library(BART)
+
+# Load the dataset
+#Load in the Austin Housing Data
+austin_data <- read_csv('austinhouses.csv',rt)
+#Set the first row as column names
+colnames(austin_data) <- austin_data[1, ]
+austin_data <- austin_data[-1, ]
+rownames(austin_data) <- NULL
+
+
+# Convert relevant columns to numeric and handle non-numeric values
+austin_data <- austin_data %>%
+  mutate(
+    latestPrice = as.numeric(latestPrice),
+    latitude = as.numeric(latitude),
+    longitude = as.numeric(longitude),
+    hasAssociation = as.factor(hasAssociation), # Assuming this is a categorical variable
+    livingAreaSqFt = as.numeric(livingAreaSqFt),
+    numOfBathrooms = as.numeric(numOfBathrooms),
+    numOfBedrooms = as.numeric(numOfBedrooms)
+  )
+
+# Check for and handle any NA values
+austin_data <- austin_data %>%
+  filter(
+    !is.na(latestPrice) & 
+    !is.na(latitude) & 
+    !is.na(longitude) & 
+    !is.na(hasAssociation) & 
+    !is.na(livingAreaSqFt) & 
+    !is.na(numOfBathrooms) & 
+    !is.na(numOfBedrooms)
+  )
+
+# Add column for log(latestPrice)
+austin_data <- austin_data %>%
+  mutate(log_latestPrice = log(latestPrice))
+
+# Initialize a data frame to store MSE and RMSE values
+results <- data.frame(
+  Model = character(),
+  MSE = numeric(),
+  RMSE = numeric(),
+  stringsAsFactors = FALSE
+)
+
+```
+
+## Part A
+
+```{r}
+
+#Split the data
+set.seed(1) 
+train <- sample(1:nrow(austin_data), 0.8*nrow(austin_data)) 
+austin_data.train <- austin_data[train, ] 
+austin_data.test <- austin_data[-train, ]
+```
+
+## Part B
+
+```{r}
+#Fit regression tree
+tree.austin <- tree(log_latestPrice ~ latitude + longitude + hasAssociation + livingAreaSqFt + numOfBathrooms + numOfBedrooms, 
+                    data = austin_data.train)
+
+#Plot 
+plot(tree.austin)
+text(tree.austin, pretty = 0, cex = 0.6, xpd = NA, offset = 0.5)
+
+
+#Predict on test set
+predictions <- predict(tree.austin, newdata = austin_data.test)
+
+#Convert predictions back to price scale
+predicted_prices <- exp(predictions)
+actual_prices <- austin_data.test$latestPrice
+
+#Calculate MSE and RMSE
+tree_mse <- mean((predicted_prices - actual_prices)^2)
+tree_rmse <- sqrt(tree_mse)
+
+cat("Test MSE: ", tree_mse, "\n")
+cat("Test RMSE: ", tree_rmse, "\n")
+```
+
+## Part C
+
+```{r}
+#Perform cross-validation to determine the optimal level of tree complexity
+cv.austin <- cv.tree(tree.austin, FUN = prune.tree)
+
+#Plot cross-validation results
+plot(cv.austin$size, cv.austin$dev, type = "b", xlab = "Tree Size", ylab = "Deviance", main = "Cross-Validation Results")
+```
+
+```{r}
+#Find the optimal size for pruning
+optimal_size <- cv.austin$size[which.min(cv.austin$dev)]
+
+#Prune the tree to the optimal size
+pruned.austin <- prune.tree(tree.austin, best = optimal_size)
+
+#Plot the pruned tree
+plot(pruned.austin)
+text(pruned.austin, pretty = 0, cex = 0.6, xpd = NA, offset = 0.5)
+```
+
+```{r}
+#MSE and RMSE for Tree before CV and Pruning
+mse_original <- mean((predicted_prices - actual_prices)^2)
+rmse_original <- sqrt(mse_original)
+
+cat("Original Tree Test MSE: ", tree_mse, "\n")
+cat("Original Tree Test RMSE: ", tree_rmse, "\n")
+
+#Predict on test set using the pruned tree
+pruned_yhat <- predict(pruned.austin, newdata = austin_data.test)
+pruned_predicted_prices <- exp(pruned_yhat) # Convert back to price scale
+
+#Calculate MSE and RMSE for the pruned tree
+mse_pruned <- mean((pruned_predicted_prices - actual_prices)^2)
+rmse_pruned <- sqrt(mse_pruned)
+
+cat("Pruned Tree Test MSE: ", mse_pruned, "\n")
+cat("Pruned Tree Test RMSE: ", rmse_pruned, "\n")
+```
+
+#Pruning does not improve the TEST MSE. It remains the same.
+
+## Part D
+
+```{r}
+library(randomForest)
+
+set.seed(1)
+bag.austin <- randomForest(log_latestPrice ~ latitude + longitude + hasAssociation + livingAreaSqFt + numOfBathrooms + numOfBedrooms, 
+                           data = austin_data.train, 
+                           mtry = 6, # Number of predictors
+                           importance = TRUE)
+```
+
+```{r}
+#Predict on test set using the bagging model
+yhat.bag <- predict(bag.austin, newdata = austin_data.test)
+predicted_prices_bag <- exp(yhat.bag) # Convert back to price scale
+actual_prices <- austin_data.test$latestPrice
+#Calculate MSE and RMSE for the bagging model
+mse_bag <- mean((predicted_prices_bag - actual_prices)^2)
+rmse_bag <- sqrt(mse_bag)
+```
+
+```{r}
+#Determine the importance of each variable
+importance_values <- importance(bag.austin)
+varImpPlot(bag.austin)
+
+```
+
+Comments:
+
+1\. **Latitude and Longitude**: - Both `latitude` and `longitude` have high %IncMSE and IncNodePurity values, indicating that they are very important predictors in the model. The geographical location of a property significantly impacts its price.
+
+2.  **Living Area (SqFt)**:
+    -   `livingAreaSqFt` has the highest IncNodePurity, showing its substantial contribution to reducing node impurity. It's also quite important in terms of %IncMSE, suggesting that larger living areas are closely associated with higher property prices.
+
+## Part E
+
+```{r}
+#Fit random forest model
+set.seed(1)
+rf.austin <- randomForest(log_latestPrice ~ latitude + longitude + hasAssociation + livingAreaSqFt + numOfBathrooms + numOfBedrooms, 
+                          data = austin_data.train, 
+                          mtry = 3, 
+                          importance = TRUE)
+#Summary
+print(rf.austin)
+
+```
+
+```{r}
+#Predict on test set using the random forest model
+yhat.rf <- predict(rf.austin, newdata = austin_data.test)
+predicted_prices_rf <- exp(yhat.rf) # Convert back to price scale
+actual_prices <- austin_data.test$latestPrice
+```
+
+```{r}
+#Calculate MSE and RMSE for the random forest model
+mse_rf <- mean((predicted_prices_rf - actual_prices)^2)
+rmse_rf <- sqrt(mse_rf)
+
+cat("Random Forest Model Test MSE: ", mse_rf, "\n")
+cat("Random Forest Model Test RMSE: ", rmse_rf, "\n")
+```
+
+```{r}
+#Determine the importance of each variable
+importance_values_rf <- importance(rf.austin)
+print(importance_values_rf)
+
+#Plot variable importance
+varImpPlot(rf.austin)
+```
+
+\# Comments: Geographical location (latitude and longitude) and the living area are the most significant predictors of property prices in Austin. The presence of a homeowners' association and the number of bathrooms also contribute but to a lesser extent. The number of bedrooms is the least important predictor among the variables considered.
+
+```{r}
+#Test different values of mtry
+set.seed(1)
+mtry_values <- c(1, 2, 3, 4, 5, 6)
+mse_values <- c()
+
+for (m in mtry_values) {
+  rf_model <- randomForest(log_latestPrice ~ latitude + longitude + hasAssociation + livingAreaSqFt + numOfBathrooms + numOfBedrooms, 
+                           data = austin_data.train, 
+                           mtry = m, 
+                           importance = TRUE)
+  yhat <- predict(rf_model, newdata = austin_data.test)
+  predicted_prices <- exp(yhat)
+  mse <- mean((predicted_prices - actual_prices)^2)
+  mse_values <- c(mse_values, mse)
+}
+
+#Plot the effect of mtry on MSE
+plot(mtry_values, mse_values, type = "b", xlab = "Number of Variables (mtry)", ylab = "Test MSE", main = "Effect of mtry on Test MSE")
+```
+
+Seeing the plot and comparing the RMSE's for mytry = 6 and 3, at mtry = 3, we find the lowest RMSE. This means that the model performed better with a smaller number but only specifically at mytry = 3 of features selected at each node which is interesting. This can improve model accuracy.
+
+mytry = 6
+
+```         
+Random Forest Model Test MSE:  41019.49  Random Forest Model Test RMSE:  202.5327 
+```
+
+mytry = 3
+
+```         
+Random Forest Model Test MSE:  40398.32  Random Forest Model Test RMSE:  200.9933 
+```
+
+## Part F
+
+```{r}
+
+```
+
+```{r}
+#Preparing Data for BART
+#Install Bart Package
+if (!requireNamespace("BART", quietly = TRUE)) {
+  install.packages("BART")
+}
+
+#Load Libraries
+library(readr)
+library(dplyr)
+library(BART)
+
+#Load Data
+austin_data <- read_csv('austinhouses.csv', rt)
+
+#Data set Cleaning
+colnames(austin_data) <- austin_data[1, ]
+austin_data <- austin_data[-1, ]
+rownames(austin_data) <- NULL
+
+austin_data <- austin_data %>%
+  mutate(
+    latestPrice = as.numeric(latestPrice),
+    latitude = as.numeric(latitude),
+    longitude = as.numeric(longitude),
+    hasAssociation = as.numeric(as.factor(hasAssociation)), # Convert factor to numeric
+    livingAreaSqFt = as.numeric(livingAreaSqFt),
+    numOfBathrooms = as.numeric(numOfBathrooms),
+    numOfBedrooms = as.numeric(numOfBedrooms)
+  )
+
+austin_data <- austin_data %>%
+  filter(
+    !is.na(latestPrice) & 
+    !is.na(latitude) & 
+    !is.na(longitude) & 
+    !is.na(hasAssociation) & 
+    !is.na(livingAreaSqFt) & 
+    !is.na(numOfBathrooms) & 
+    !is.na(numOfBedrooms)
+  )
+```
+
+```{r}
+# Add column for log(latestPrice)
+austin_data <- austin_data %>%
+  mutate(log_latestPrice = log(latestPrice))
+
+# Split the data according to 80/20 split (80 train 20 test) + set seed to 1 to ensure reproducibility
+set.seed(1)
+train <- sample(1:nrow(austin_data), 0.8 * nrow(austin_data))
+austin_data.train <- austin_data[train, ]
+austin_data.test <- austin_data[-train, ]
+```
+
+```{r}
+# Prepare the data for BART
+xtrain <- austin_data.train %>% select(latitude, longitude, hasAssociation, livingAreaSqFt, numOfBathrooms, numOfBedrooms)
+ytrain <- austin_data.train$log_latestPrice
+xtest <- austin_data.test %>% select(latitude, longitude, hasAssociation, livingAreaSqFt, numOfBathrooms, numOfBedrooms)
+ytest <- austin_data.test$log_latestPrice
+
+# Ensure the data is in the correct format
+xtrain <- as.data.frame(lapply(xtrain, as.numeric))
+xtest <- as.data.frame(lapply(xtest, as.numeric))
+```
+
+```{r}
+
+# Fit the BART model
+set.seed(1)
+bartfit <- gbart(xtrain, ytrain, x.test = xtest)
+# Print the model summary
+summary(bartfit)
+```
+
+```{r}
+
+#Predict on test set using BART 
+yhat.bart <- bartfit$yhat.test.mean
+predicted_prices_bart <- exp(yhat.bart) # Convert back to price scale
+actual_prices <- exp(ytest) # Convert back to price scale
+
+```
+
+```{r}
+#MSE and RMSE 
+mse_bart <- mean((predicted_prices_bart - actual_prices)^2)
+rmse_bart <- sqrt(mse_bart)
+
+cat("BART Model Test MSE: ", mse_bart, "\n")
+cat("BART Model Test RMSE: ", rmse_bart, "\n")
+
+#Importance
+ord <- order(bartfit$varcount.mean, decreasing = TRUE)
+variable_importance <- bartfit$varcount.mean[ord]
+
+#Print Statement
+cat("Variable Importance (sorted): \n")
+print(variable_importance)
+
+# Plot variable importance
+barplot(variable_importance, main = "Variable Importance for BART Model", 
+        xlab = "Variables", ylab = "Importance", 
+        names.arg = names(variable_importance), las = 2, col = "blue")
+```
+
+# Take-home #5 (Chapter 8 #8)
+
+## Part A
+
+```{r}
+#Load Libraries
+library(ISLR)
+library(dplyr)
+p5_data <- Caravan
+#Data Cleaning and Adjustments
+p5_data <- p5_data %>%
+  mutate(Purchase = ifelse(Purchase == "Yes", 1, 0))
+# Create a training set consisting of the first 1,000 observations
+p5_train <- p5_data %>% slice(1:1000)
+# Create a test set consisting of the remaining observations
+p5_test <- p5_data %>% slice(1001:n())
+
+```
+
+## Part B
+
+```{r}
+library('gbm')
+boost_model <- gbm(Purchase ~ ., data = p5_train, distribution = "bernoulli", n.trees = 1000, shrinkage = 0.01)
+summary(boost_model)[1:10, ]
+```
+
+Comment: The table shows the top 10 predictors with the highest relative influence of different for predicting the Purchase. PPERSAUT is at the top with a 14.48 relative influence.
+
+## Part C
+
+```{r}
+#Predict the response on test data
+predicted_probabilities <- predict(boost_model, p5_test, n.trees = 1000, type = "response")
+predicted_labels <- ifelse(predicted_probabilities > 0.2, 1, 0)
+
+#Confusion matrix
+confusion_matrix_boost <- table(p5_test$Purchase, predicted_labels)
+#Calculate precision for boosting model
+precision_boost <- confusion_matrix_boost[2, 2] / sum(confusion_matrix_boost[, 2])
+#Calculate sensitivity for boosting model
+sensitivity_boost <- confusion_matrix_boost[2, 2] / sum(confusion_matrix_boost[2, ])
+print(confusion_matrix_boost)
+cat("Boosting Model Precision:", precision_boost, "\n")
+cat("Boosting Model Sensitivity:", sensitivity_boost, "\n")
+```
+
+```{r}
+#Fit logistic regression model for comparison
+logistic_model <- glm(Purchase ~ ., data = p5_train, family = binomial)
+
+#Predict response on test data using logistic regression
+logistic_probabilities <- predict(logistic_model, p5_test, type = "response")
+logistic_labels <- ifelse(logistic_probabilities > 0.2, 1, 0)
+
+#Create confusion matrix for logistic regression
+confusion_matrix_logistic <- table(p5_test$Purchase, logistic_labels)
+
+#Calculate precision for logistic regression
+precision_logistic <- confusion_matrix_logistic[2, 2] / sum(confusion_matrix_logistic[, 2])
+
+#Calculate sensitivity for logistic regression
+sensitivity_logistic <- confusion_matrix_logistic[2, 2] / sum(confusion_matrix_logistic[2, ])
+
+print(confusion_matrix_logistic)
+cat("Logistic Regression Precision:", precision_logistic, "\n")
+cat("Logistic Regression Sensitivity:", sensitivity_logistic, "\n")
+```
+
+Comments:
+
+Boosting model has higher precision (21.12%) and lower sensitivity (11.76%) compared to logistic regression with lower precision (14.22%) and higher sensitivity (20.07%). Boosting model is more accurate when it predicts a purchase, but the logistic regression model is better at identifying actual purchasers. There is a trade off in this case because the choice between models depends on whether minimizing false positives (boosting) or maximizing the detection of actual purchasers where logistic regression may apply better.
+
+# 
