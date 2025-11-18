@@ -1,25 +1,17 @@
-STA 380 Analysis Summary
+# STA380 Project Summary
 
-This repository contains my work for STA 380, covering two main analytics projects:
+This repository contains two analyses completed for STA380.
 
-1. Wine Clustering & Dimensionality Reduction
+## Wine Clustering and Dimensionality Reduction
+Used PCA, t-SNE, and K-Means on 6,500 Vinho Verde wines to examine whether chemical properties can separate:
+- Red vs. white wines
+- Different quality levels
 
-Using a dataset of 6,500 Vinho Verde wines, I applied PCA, t-SNE, and K-Means to explore whether chemical properties can naturally separate:
+Wine color separates clearly across all methods. Quality shows partial but not distinct separation.  
+Note: Plotly figures do not render on GitHub. View them by downloading the notebook or checking the screenshots in the repo.
 
-Red vs. white wines
+## Green Buildings Rent Analysis
+Analyzed 7,894 commercial properties to evaluate whether green-certified buildings command higher rents.
 
-Different quality levels
+Key finding: green buildings have a consistent \$2.60 per sq ft rent premium, which remains stable after filtering out low-occupancy buildings. The premium is largest in smaller buildings and Class C properties. Correlation analysis shows local market rent as the strongest predictor of rent levels.
 
-t-SNE and PCA clearly separate wine color, while both methods show limited but noticeable structure related to wine quality.
-Plots cannot render on GitHub—download the notebook or view screenshots in the main repo.
-
-2. Green Buildings Rent Analysis
-
-Using a dataset of 7,894 commercial buildings, I evaluated whether green-certified buildings command higher rents.
-Findings:
-
-Green buildings have a $2.60/sqft rent premium, which remains stable after filtering low-occupancy properties.
-
-Premium is highest in Class C buildings and smaller properties.
-
-Correlation analysis highlights market conditions as the strongest driver of rent.
